@@ -1,67 +1,40 @@
 package RestApiNews.controller;
 
+import RestApiNews.dto.NewsDto;
 import RestApiNews.entity.News;
+import RestApiNews.mapper.NewsMapper;
 import RestApiNews.service.NewsService;
-import org.springframework.beans.factory.annotation.Autowired;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
-
 @RestController
 @RequestMapping("/api/news")
-public class NewsController {
+public class NewsController extends AbstractController<News, NewsDto> {
 
-    @Autowired
-    private NewsService newsService;
+    private final NewsMapper newsMapper;
 
-    @GetMapping
-    public ResponseEntity<List<News>> getAll() {
-        List<News> entities = newsService.read();
-        if (entities.isEmpty()) {
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-        }
-        return new ResponseEntity<>(entities, HttpStatus.OK);
+    private final NewsService newsService;
+
+    public NewsController(NewsService newsService, NewsMapper newsMapper) {
+        super(newsService);
+        this.newsService = newsService;
+        this.newsMapper = newsMapper;
     }
 
-    @GetMapping("/{id}")
-    public ResponseEntity<News> getById(@PathVariable Long id) {
-        News entity = newsService.read(id);
-        if (entity == null) {
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-        }
-        return new ResponseEntity<>(entity, HttpStatus.OK);
+    @Override
+    protected NewsDto toDto(News entity) {
+        return newsMapper.toDto(entity);
     }
 
-    @PostMapping
-    public ResponseEntity<News> create(@RequestBody News entity) {
-        newsService.save(entity);
-        return new ResponseEntity<>(entity, HttpStatus.CREATED);
-    }
-
-    @PutMapping("/{id}")
-    public ResponseEntity<News> update(@PathVariable Long id, @RequestBody News entity) {
-        News existingEntity = newsService.read(id);
-        if (existingEntity == null) {
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-        }
-        newsService.edit(entity);
-        return new ResponseEntity<>(entity, HttpStatus.OK);
-    }
-
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@PathVariable Long id) {
-        News entity = newsService.read(id);
-        if (entity == null) {
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-        }
-        newsService.delete(id);
-        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+    @Override
+    protected News toEntity(NewsDto dto) {
+        return newsMapper.toEntity(dto);
     }
 
     @GetMapping("/displayWordcount/{id}")
-    public ResponseEntity<Long> wordcountNewsID(@PathVariable("id") Long id) {
+    public ResponseEntity<Long> wordcountNewsID(@PathVariable Long id) {
         News news = newsService.read(id);
         if (news != null) {
             Long wordCount = 0L;

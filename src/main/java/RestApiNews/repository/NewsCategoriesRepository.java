@@ -1,10 +1,13 @@
 package RestApiNews.repository;
 
-import RestApiNews.entity.Categories;
-import RestApiNews.entity.NewsCategories;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.stereotype.Repository;
+import RestApiNews.entity.NewsCategories;
+import RestApiNews.entity.News;
+import RestApiNews.entity.Categories;
 
-@Repository
 public interface NewsCategoriesRepository extends JpaRepository<NewsCategories, Long> {
+
+    boolean existsByNewsAndCategories(News news, Categories categories);
+
 }
+

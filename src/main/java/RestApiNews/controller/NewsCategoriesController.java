@@ -1,10 +1,14 @@
 package RestApiNews.controller;
 
+import RestApiNews.dto.NewsCategoriesDto;
 import RestApiNews.entity.Categories;
 import RestApiNews.entity.News;
 import RestApiNews.entity.NewsCategories;
+import RestApiNews.service.CategoriesService;
 import RestApiNews.service.NewsCategoriesService;
 import RestApiNews.service.NewsService;
+import RestApiNews.mapper.NewsCategoriesMapper;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -23,38 +27,85 @@ public class NewsCategoriesController {
     @Autowired
     private NewsService newsService;
 
+    @Autowired
+    private CategoriesService categoriesService;
+
+    @Autowired
+    private NewsCategoriesMapper newsCategoriesMapper;
+
     @GetMapping
-    public ResponseEntity<List<NewsCategories>> getAll() {
+    public ResponseEntity<List<NewsCategoriesDto>> getAll() {
         List<NewsCategories> entities = newsCategoriesService.read();
         if (entities.isEmpty()) {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
-        return new ResponseEntity<>(entities, HttpStatus.OK);
+        List<NewsCategoriesDto> dtos = entities.stream()
+                .map(newsCategoriesMapper::toDto)
+                .collect(Collectors.toList());
+        return new ResponseEntity<>(dtos, HttpStatus.OK);
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<NewsCategories> getById(@PathVariable Long id) {
+    public ResponseEntity<NewsCategoriesDto> getById(@PathVariable Long id) {
         NewsCategories entity = newsCategoriesService.read(id);
         if (entity == null) {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
-        return new ResponseEntity<>(entity, HttpStatus.OK);
+        return new ResponseEntity<>(newsCategoriesMapper.toDto(entity), HttpStatus.OK);
     }
 
     @PostMapping
-    public ResponseEntity<NewsCategories> create(@RequestBody NewsCategories entity) {
+    public ResponseEntity<NewsCategoriesDto> create(@RequestBody NewsCategoriesDto dto) {
+        if (dto.getNews() == null || dto.getNews().getId() == null ||
+                dto.getCategories() == null || dto.getCategories().getId() == null) {
+            return ResponseEntity.badRequest().build();
+        }
+
+        News news = newsService.read(dto.getNews().getId());
+        Categories categories = categoriesService.read(dto.getCategories().getId());
+
+        if (news == null || categories == null) {
+            return ResponseEntity.notFound().build();
+        }
+
+        if (newsCategoriesService.existsByNewsAndCategories(news, categories)) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).build();
+        }
+
+        NewsCategories entity = new NewsCategories();
+        entity.setNews(news);
+        entity.setCategories(categories);
         newsCategoriesService.save(entity);
-        return new ResponseEntity<>(entity, HttpStatus.CREATED);
+
+        return new ResponseEntity<>(newsCategoriesMapper.toDto(entity), HttpStatus.CREATED);
     }
 
+
     @PutMapping("/{id}")
-    public ResponseEntity<NewsCategories> update(@PathVariable Long id, @RequestBody NewsCategories entity) {
+    public ResponseEntity<NewsCategoriesDto> update(@PathVariable Long id, @RequestBody NewsCategoriesDto dto) {
         NewsCategories existingEntity = newsCategoriesService.read(id);
         if (existingEntity == null) {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
-        newsCategoriesService.edit(entity);
-        return new ResponseEntity<>(entity, HttpStatus.OK);
+
+        if (dto.getNews() == null || dto.getNews().getId() == null ||
+                dto.getCategories() == null || dto.getCategories().getId() == null) {
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        }
+
+        News news = newsService.read(dto.getNews().getId());
+        Categories categories = categoriesService.read(dto.getCategories().getId());
+
+        if (news == null || categories == null) {
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
+
+        existingEntity.setNews(news);
+        existingEntity.setCategories(categories);
+
+        newsCategoriesService.edit(existingEntity);
+
+        return new ResponseEntity<>(newsCategoriesMapper.toDto(existingEntity), HttpStatus.OK);
     }
 
     @DeleteMapping("/{id}")
@@ -68,7 +119,7 @@ public class NewsCategoriesController {
     }
 
     @GetMapping("/CategoriesForNews/{id}")
-    public ResponseEntity<List<Categories>> CategoriesForNews(@PathVariable("id") Long id) {
+    public ResponseEntity<List<Categories>> categoriesForNews(@PathVariable("id") Long id) {
         News news = newsService.read(id);
         if (news != null) {
             List<Categories> categories = news.getNewsCategories().stream()

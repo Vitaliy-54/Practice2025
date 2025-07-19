@@ -1,5 +1,7 @@
 package RestApiNews.service.impl;
 
+import RestApiNews.entity.Categories;
+import RestApiNews.entity.News;
 import RestApiNews.entity.NewsCategories;
 import RestApiNews.repository.NewsCategoriesRepository;
 import RestApiNews.service.NewsCategoriesService;
@@ -42,5 +44,10 @@ public class NewsCategoriesServiceImpl implements NewsCategoriesService {
     @Override
     public void delete(Long id) {
         newsCategoriesRepository.deleteById(id);
+    }
+
+    @Override
+    public boolean existsByNewsAndCategories(News news, Categories categories) {
+        return newsCategoriesRepository.existsByNewsAndCategories(news, categories);
     }
 }
