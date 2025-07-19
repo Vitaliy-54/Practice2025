@@ -7,10 +7,10 @@ import RestApiNews.entity.User;
 
 @Mapper(componentModel = "spring")
 public interface UserMapper {
-
     UserDto toDto(User entity);
-
     User toEntity(UserDto dto);
 }
+
+
 
 
