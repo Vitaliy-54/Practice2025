@@ -17,7 +17,6 @@ public abstract class AbstractController<T extends AbstractEntity, D> {
         this.service = service;
     }
 
-    // Метод, который возвращает маппер для преобразования между Entity и DTO
     protected abstract D toDto(T entity);
     protected abstract T toEntity(D dto);
 
@@ -25,7 +24,7 @@ public abstract class AbstractController<T extends AbstractEntity, D> {
     public ResponseEntity<List<D>> getAll() {
         List<T> entities = service.read();
         if (entities.isEmpty()) {
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+            throw new IllegalStateException("Список объектов пуст");
         }
 
         List<D> dtos = entities.stream()
@@ -39,9 +38,8 @@ public abstract class AbstractController<T extends AbstractEntity, D> {
     public ResponseEntity<D> getById(@PathVariable Long id) {
         T entity = service.read(id);
         if (entity == null) {
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+            throw new IllegalArgumentException("Объект с ID " + id + " не найден");
         }
-
         return new ResponseEntity<>(toDto(entity), HttpStatus.OK);
     }
 
@@ -54,22 +52,22 @@ public abstract class AbstractController<T extends AbstractEntity, D> {
 
     @PutMapping("/{id}")
     public ResponseEntity<D> update(@PathVariable Long id, @RequestBody D dto) {
-        T existingEntity = service.read(id);
-        if (existingEntity == null) {
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        T existing = service.read(id);
+        if (existing == null) {
+            throw new IllegalArgumentException("Невозможно обновить: объект с ID " + id + " не найден");
         }
 
-        T updatedEntity = toEntity(dto);
-        updatedEntity.setId(id); // сохраняем ID
-        service.edit(updatedEntity);
-        return new ResponseEntity<>(toDto(updatedEntity), HttpStatus.OK);
+        T updated = toEntity(dto);
+        updated.setId(id);
+        service.edit(updated);
+        return new ResponseEntity<>(toDto(updated), HttpStatus.OK);
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         T entity = service.read(id);
         if (entity == null) {
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+            throw new IllegalArgumentException("Удаление невозможно: объект с ID " + id + " не найден");
         }
         service.delete(id);
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
