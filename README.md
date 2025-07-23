@@ -4,7 +4,7 @@
 
 ## 📦 Технологии
 
-- Java 8
+- Java 17
 - Spring Boot 2.2.4
 - Spring Data JPA
 - Spring Security
