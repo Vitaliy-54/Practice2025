@@ -1,5 +1,6 @@
 package RestApiNews.controller;
 
+import javax.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -44,14 +45,14 @@ public abstract class AbstractController<T extends AbstractEntity, D> {
     }
 
     @PostMapping
-    public ResponseEntity<D> create(@RequestBody D dto) {
+    public ResponseEntity<D> create(@RequestBody @Valid D dto) {
         T entity = toEntity(dto);
         service.save(entity);
         return new ResponseEntity<>(toDto(entity), HttpStatus.CREATED);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<D> update(@PathVariable Long id, @RequestBody D dto) {
+    public ResponseEntity<D> update(@PathVariable Long id, @RequestBody @Valid D dto) {
         T existing = service.read(id);
         if (existing == null) {
             throw new IllegalArgumentException("Невозможно обновить: объект с ID " + id + " не найден");

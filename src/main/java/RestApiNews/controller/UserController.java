@@ -4,12 +4,17 @@ import RestApiNews.dto.UserDto;
 import RestApiNews.entity.User;
 import RestApiNews.mapper.UserMapper;
 import RestApiNews.security.UserService;
-
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.BindingResult;
+import org.springframework.validation.FieldError;
 import org.springframework.web.bind.annotation.*;
 
+import javax.validation.Valid;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @RestController
@@ -37,10 +42,22 @@ public class UserController {
     }
 
     @PostMapping("/registration")
-    public ResponseEntity<UserDto> register(@RequestBody UserDto userDto) {
-        if (userService.findByUsername(userDto.getUsername()) != null) {
-            return new ResponseEntity<>(HttpStatus.CONFLICT);
+    public ResponseEntity<?> register(@Valid @RequestBody UserDto userDto, BindingResult bindingResult) {
+        // Обработка ошибок валидации
+        if (bindingResult.hasErrors()) {
+            Map<String, String> errors = new HashMap<>();
+            for (FieldError error : bindingResult.getFieldErrors()) {
+                errors.put(error.getField(), error.getDefaultMessage());
+            }
+            return ResponseEntity.badRequest().body(errors);
         }
+
+        // Проверка существующего пользователя
+        if (userService.findByUsername(userDto.getUsername()) != null) {
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body(Collections.singletonMap("username", "Пользователь с таким именем уже существует"));
+        }
+
         User user = userMapper.toEntity(userDto);
         userService.saveUser(user);
         return new ResponseEntity<>(userMapper.toDto(user), HttpStatus.CREATED);
